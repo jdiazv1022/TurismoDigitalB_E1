@@ -12,40 +12,76 @@ pipeline {
         stage('Preparar entorno Python') {
             steps {
                 echo 'Configurando entorno virtual y librerías...'
-                sh '''
-                python -m venv venv
-                source venv/bin/activate || venv\\Scripts\\activate
-                pip install --upgrade pip
-                pip install pandas numpy faker matplotlib pymongo
-                '''
+                script {
+                    if (isUnix()) {
+                        sh '''
+                        python3 -m venv venv
+                        . venv/bin/activate
+                        python -m pip install --upgrade pip
+                        python -m pip install -r requirements.txt
+                        '''
+                    } else {
+                        // On Windows agents use batch commands (cmd.exe). Keep everything in one bat block
+                        bat '''
+                        python -m venv venv
+                        call venv\\Scripts\\activate.bat
+                        python -m pip install --upgrade pip
+                        python -m pip install -r requirements.txt
+                        '''
+                    }
+                }
             }
         }
 
         stage('Generar Datos') {
             steps {
                 echo 'Ejecutando generación de datos simulados...'
-                sh 'python scripts/3_Generar_Data_Turismo.py'
+                script {
+                    if (isUnix()) {
+                        sh 'python3 scripts/3_Generar_Data_Turismo.py'
+                    } else {
+                        bat 'python scripts\\3_Generar_Data_Turismo.py'
+                    }
+                }
             }
         }
 
         stage('Proceso ETL') {
             steps {
                 echo 'Ejecutando limpieza y transformación...'
-                sh 'python scripts/5_Proceso_ETL.py'
+                script {
+                    if (isUnix()) {
+                        sh 'python3 scripts/5_Proceso_ETL.py'
+                    } else {
+                        bat 'python scripts\\5_Proceso_ETL.py'
+                    }
+                }
             }
         }
 
         stage('Cargar en MongoDB') {
             steps {
                 echo 'Cargando datos en MongoDB...'
-                sh 'python scripts/6_Loading_MongoDB.py'
+                script {
+                    if (isUnix()) {
+                        sh 'python3 scripts/6_Loading_MongoDB.py'
+                    } else {
+                        bat 'python scripts\\6_Loading_MongoDB.py'
+                    }
+                }
             }
         }
 
         stage('Generar Reportes') {
             steps {
                 echo 'Creando gráficos y reportes...'
-                sh 'python scripts/7_Reportes.py'
+                script {
+                    if (isUnix()) {
+                        sh 'python3 scripts/7_Reportes.py'
+                    } else {
+                        bat 'python scripts\\7_Reportes.py'
+                    }
+                }
             }
         }
     }
