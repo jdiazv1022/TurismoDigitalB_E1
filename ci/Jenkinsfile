@@ -1,0 +1,61 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Clonando el repositorio desde GitHub...'
+                checkout scm
+            }
+        }
+
+        stage('Preparar entorno Python') {
+            steps {
+                echo 'Configurando entorno virtual y librerías...'
+                sh '''
+                python -m venv venv
+                source venv/bin/activate || venv\\Scripts\\activate
+                pip install --upgrade pip
+                pip install pandas numpy faker matplotlib pymongo
+                '''
+            }
+        }
+
+        stage('Generar Datos') {
+            steps {
+                echo 'Ejecutando generación de datos simulados...'
+                sh 'python scripts/3_Generar_Data_Turismo.py'
+            }
+        }
+
+        stage('Proceso ETL') {
+            steps {
+                echo 'Ejecutando limpieza y transformación...'
+                sh 'python scripts/5_Proceso_ETL.py'
+            }
+        }
+
+        stage('Cargar en MongoDB') {
+            steps {
+                echo 'Cargando datos en MongoDB...'
+                sh 'python scripts/6_Loading_MongoDB.py'
+            }
+        }
+
+        stage('Generar Reportes') {
+            steps {
+                echo 'Creando gráficos y reportes...'
+                sh 'python scripts/7_Reportes.py'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completado con éxito: todo el flujo ETL se ejecutó correctamente.'
+        }
+        failure {
+            echo 'Error en la ejecución del pipeline. Revisar logs en la consola de Jenkins.'
+        }
+    }
+}
